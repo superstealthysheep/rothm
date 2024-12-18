@@ -1,0 +1,5 @@
+*.bst
+*.bib
+*.bbl
+*.synctex.gz
+*.run.xml

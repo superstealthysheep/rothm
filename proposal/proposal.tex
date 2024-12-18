@@ -1,0 +1,205 @@
+% This must be in the first 5 lines to tell arXiv to use pdfLaTeX, which is strongly recommended.
+\pdfoutput=1
+% In particular, the hyperref package requires pdfLaTeX in order to break URLs across lines.
+
+\documentclass[11pt]{article}
+
+% Change "review" to "final" to generate the final (sometimes called camera-ready) version.
+% Change to "preprint" to generate a non-anonymous version with page numbers.
+% \usepackage[review]{acl}
+\usepackage[final]{acl}
+
+% Standard package includes
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{graphicx}
+
+% For proper rendering and hyphenation of words containing Latin characters (including in bib files)
+\usepackage[T1]{fontenc}
+% For Vietnamese characters
+% \usepackage[T5]{fontenc}
+% See https://www.latex-project.org/help/documentation/encguide.pdf for other character sets
+
+% This assumes your files are encoded as UTF8
+\usepackage[utf8]{inputenc}
+
+% This is not strictly necessary, and may be commented out,
+% but it will improve the layout of the manuscript,
+% and will typically save some space.
+\usepackage{microtype}
+
+% This is also not strictly necessary, and may be commented out.
+% However, it will improve the aesthetics of text in
+% the typewriter font.
+\usepackage{inconsolata}
+
+% If the title and author information does not fit in the area allocated, uncomment the following
+%
+%\setlength\titlebox{<dim>}
+%
+% and set <dim> to something 5cm or larger.
+
+
+\usepackage{fancyhdr}
+
+
+% \title{\LaTeX{} Template for Homework and Project Reports (CSCI 5541 NLP)}
+\title{An Automated Player for Google's ``Rise of the Half Moon'' Game: Project Proposal}
+
+% Author information can be set in various styles:
+% For several authors from the same institution:
+% \author{Author 1 \and ... \and Author n \\
+%         Address line \\ ... \\ Address line}
+% if the names do not fit well on one line use
+%         Author 1 \\ {\bf Author 2} \\ ... \\ {\bf Author n} \\
+% For authors from different institutions:
+% \author{Author 1 \\ Address line \\  ... \\ Address line
+%         \And  ... \And
+%         Author n \\ Address line \\ ... \\ Address line}
+% To start a separate ``row'' of authors use \AND, as in
+% \author{Author 1 \\ Address line \\  ... \\ Address line
+%         \AND
+%         Author 2 \\ Address line \\ ... \\ Address line \And
+%         Author 3 \\ Address line \\ ... \\ Address line}
+
+\author{William Walker \\
+  \texttt{walk0950@umn.edu} }
+
+\begin{document}
+% Specify the document name here
+\pagestyle{fancy}
+%... then configure it.
+\fancyhead{} % clear all header fields
+\fancyhead[R]{\small{CSCI 5541 NLP F24}}
+\fancyhead[L]{\small{Homework 3}}
+\fancyfoot{} % clear all footer fields
+\fancyfoot[R]{\small\thepage}
+% Some content:
+
+\maketitle
+% \begin{abstract}
+
+% In this assignment, two approaches were taken for an authorship attribution classification task. The first approach was to train n-gram language models on each author and return the class with the lowest perplexity. The second approach was to fine-tune RoBERTa %\cite{DBLP:journals/corr/abs-1907-11692} directly for sequence classification.
+
+% \end{abstract}
+
+% \section{Introduction}
+\section{Problem brief}
+
+\cite{Google:2024:HalfMoon}
+
+
+\section{Preliminary work}
+\section{Approach}
+\section{Software}
+\section{Evaluation}
+\section{Timeframe}
+
+\bibliography{custom}
+
+% \appendix
+
+% \section{Additional classifier comparisons}
+% \label{sec:appendix}
+
+
+\end{document}
+
+
+%%%
+%%%
+%%%
+%%%
+%%%
+%%%
+%%%
+%%%
+%%%
+%%%
+%%%
+%%%
+
+% \documentclass{article}
+% \usepackage[utf8]{inputenc}
+% \usepackage{geometry}
+% % \usepackage{biblatex}
+% \usepackage{natbib}
+% \geometry{
+% letterpaper,
+% left=20mm,
+% top=20mm,
+% }
+% \setlength{\headheight}{12.5pt}
+% \usepackage{titling}
+% \title{CSCI 4511W Writing Assignment 2}
+% \author{William Walker}
+% \usepackage{fancyhdr}
+% \fancypagestyle{plain}{% the preset of fancyhdr
+% \fancyhf{} % clear all header and footer fields
+% \fancyhead[L]{\thetitle}
+% \fancyhead[R]{\theauthor}
+% }
+% \makeatletter
+% \def\@maketitle{%
+% \newpage
+% \null
+% \vskip 1em%
+% \begin{center}
+% {\LARGE \@title \par}
+% \vskip 1em
+% \end{center}
+% \par
+% \vskip 1em}
+% \makeatother
+
+% \usepackage[maxnames=10]{biblatex}
+% \addbibresource{custom.bib}
+% \usepackage{hyperref}
+
+% \begin{document}
+% \maketitle
+% % Introduction first. Thesis statement, paragraph that explains and supports.
+% % Multiple paragraphs in body, supporting arguments for main thesis.
+% % Conclusion.
+% % Don't forget citations!
+
+% \section{Summary}
+% I read the paper ``Finding Optimal Solutions to Cooperative Pathfinding Problems'' \cite{Standley_2010}. It discusses a new method for ``cooperative pathfinding'', which is a problem involving $n$ agents in a shared environment who must each navigate to personalized ``goal locations'' without occluding or otherwise preventing each other from reaching the goal. This problem has applications in video games (e.g. what if you have a bunch of NPCs and you want them all to navigate to places without colliding with each other?), but it also has practical applications in e.g. routing trains and robotics, and even more generally in other planning problems \cite{ucla-pathfinding}. At that time, the previous industry standard technique was one called ``Local Repair A*'' (LRA*) \cite{10.5555/3022473.3022494}, however this technique was vulnerable to \textit{deadlock} and thus was not guaranteed to find a solution even if it existed (The algorithm was not complete.) In contrast, the new technique is complete and cost optimal, and its speed is competitive with the previous standard incomplete algorithm for a very long time (until problems get quite large).
+
+% Some key techniques the author used in developing their new technique were ``operator decomposition'' (OD) and  duplicate node detection. Using this, they were able to achieve an exponential reduction in space requirements. 
+
+% Operator decomposition is interesting. In the original problem setting, if we have $n$ agents who each have $9$ possible actions (travel like a chess king or sit still), the branching factor is ordinarily $O(9^n)$. This means that if the solution is at a depth $d$, we need to use $O(9^nd)$ space, which is not feasible. However, if we instead add in `intermediate' states, where transitions between states are only moving one agent at a time, this reduces the branching factor to the constant $9$ and only increases the depth by a factor of $n$. Thus we have $O(9nd)$ space only. 
+
+% However, the time cost is still exponential in the number of agents. The author then observes that in many cases, cooperative pathfinding problems are actually composed of several smaller, independent subproblems. This is very important, because if we independently solve these subproblems, our runtime is no longer exponential in $n$, but rather exponential in $g$, where $g$ is the size of the largest subproblem. The author then introduces a technique called ``independence detection'' (ID) to identify these subproblems, which leads to a massive speedup. This led to a big speedup.
+
+% \section{Personal reaction to paper}
+
+% I thought this paper was really interesting. My favorite part was the operator decomposition. When you first hear the idea, it's not immediately obvious that it will help out in any way, but it ends up giving an enormous speedup. Also, in retrospect, it seems like a very straightforward idea. Ideas like this always appeal to me. 
+
+% I think the paper was surprisingly approachable and well-written. I think that it would still take me a while and bit more poring over the paper to be able to implement what they discussed, but I was honestly quite surprised how easy this paper was to skim. In contrast to other papers I've read, the language is quite approachable and the jargon is fairly minimal. Sometimes (often, in fact, in my opinion), you read a paper and it's like a brick wall. This one, though, I was able to understand pretty well, even just skimming through it in a bit of a hurry. 
+
+% \section{AI language tool usage disclosure}
+% I did not use any AI language tools in any of the researching, brainstorming, writing, or other processes of authoring this assignment.
+
+
+
+
+% \printbibliography
+
+% \end{document}
+
+
+% % \documentclass{article}
+% % \usepackage{graphicx} % Required for inserting images
+
+% % \title{CSCI 4511W Writing 1}
+% % \author{003731 }
+% % \date{September 2024}
+
+% % \begin{document}
+
+% % \maketitle
+
+% % \section{Introduction}
+
+% % \end{document}
