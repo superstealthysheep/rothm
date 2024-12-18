@@ -16,13 +16,14 @@ bg_color = 'white'
 white_color = 'lightblue'
 black_color = 'pink'
 pen_thickness = 3
-node_radius = 20
+node_radius = 15
 
 class Graph:
     def __init__(self, n):
         self.size = n
         self.adj = defaultdict(set)
         self.pos = {}
+        self.scale = 1
         self.canvas = None # must set before calling `display()`
 
     def add_edge(self, u, v):
@@ -38,26 +39,64 @@ class Graph:
         self.pos[u] = (x, y)
 
     @staticmethod
-    def example_board():
-        g = Graph(9)
+    def example_board(edge_length=3):
+        g = Graph(edge_length ** 2)
 
-        scale = 2
-        x_off,y_off = 50*scale,50*scale
-        spacing = 50*scale
-        for i in range(9):
-            g.set_pos(i, x_off + (i % 3)*spacing, y_off + (i // 3)*spacing)
-            if i % 3 < 2:
+        g.scale = 1
+        x_off,y_off = 50,50
+        spacing = 50
+        for i in range(edge_length ** 2):
+            g.set_pos(i, x_off + (i % edge_length)*spacing, y_off + (i // edge_length)*spacing)
+            if i % edge_length < edge_length - 1:
                 g.add_edge(i, i+1)
-            if i // 3 < 2:
-                g.add_edge(i, i+3)
+            if i // edge_length < edge_length - 1:
+                g.add_edge(i, i+edge_length)
         return g
 
-    def draw_node(canvas, x, y, color=bg_color):
-        canvas.create_oval(x-node_radius, y-node_radius, 
+    def scaled_create_oval(scale, canvas, x0, y0, x1, y1, **kwargs):
+        x0,y0,x1,y1 = map(lambda a: a*scale, [x0,y0,x1,y1])
+        return canvas.create_oval(x0, y0, x1, y1, **kwargs)
+
+    def scaled_create_line(scale, canvas, x0, y0, x1, y1, **kwargs):
+        x0,y0,x1,y1 = map(lambda a: a*scale, [x0,y0,x1,y1])
+        return canvas.create_line(x0, y0, x1, y1, **kwargs)
+
+    def draw_node(scale, canvas, x, y, color=bg_color):
+        Graph.scaled_create_oval(scale, canvas, x-node_radius, y-node_radius, 
                            x+node_radius, y+node_radius, fill=color, width=pen_thickness)
 
-    def draw_edge(canvas, x0, y0, x1, y1):
-        canvas.create_line(x0, y0, x1, y1, width=pen_thickness)
+    def draw_edge(scale, canvas, x0, y0, x1, y1, phase=False, cycle=False, full=False):
+        if cycle:
+            Graph.scaled_create_line(scale, canvas, x0, y0, x1, y1, width=pen_thickness*2)
+            xm,ym = (x0+x1)/2,(y0+y1)/2
+        else:
+            Graph.scaled_create_line(scale, canvas, x0, y0, x1, y1, width=pen_thickness)
+            xm,ym = (x0+x1)/2,(y0+y1)/2
+        
+        if full:
+            full_moon_radius = 3
+            Graph.scaled_create_oval(scale, canvas,
+                xm-full_moon_radius, ym-full_moon_radius,
+                xm+full_moon_radius, ym+full_moon_radius,
+                fill='white', width=pen_thickness
+                )
+
+        if phase:
+            phase_moon_radius = 1
+            def orthogonal_unit(x, y):
+                x_orth,y_orth = -y,x
+                mag = (x**2 + y**2) ** 0.5
+                return x_orth/mag,y_orth/mag
+            x_orth,y_orth = orthogonal_unit(x1-x0, y1-y0)
+            for d in (-1, 1):
+                x = xm + 5*d*x_orth           
+                y = ym + 5*d*y_orth           
+
+                Graph.scaled_create_oval(scale, canvas,
+                    x-phase_moon_radius, y-phase_moon_radius,
+                    x+phase_moon_radius, y+phase_moon_radius,
+                    fill='black', width=pen_thickness
+                    )
 
     def draw_board(self, canvas, state=None):
         node_colors = defaultdict(lambda: bg_color)
@@ -81,21 +120,32 @@ class Graph:
             for v in neigh:
                 x_u,y_u = self.pos[u]
                 x_v,y_v = self.pos[v]
-                Graph.draw_edge(canvas, 
+                Graph.draw_edge(self.scale, canvas, 
                                          x_u, y_u, 
                                          x_v, y_v)
 
         for u in range(self.size):
             x,y = self.pos[u]
             color = node_colors[u]
-            Graph.draw_node(canvas, x, y, color)
-            canvas.create_text(x, y, text=node_values[u])
+            Graph.draw_node(self.scale, canvas, x, y, color)
+            canvas.create_text(x*self.scale, y*self.scale, text=node_values[u])
+
+        canvas.update()
 
     # def display(self):
     #     assert self.canvas is not None
     #     self.draw_board(self.canvas)
 
-class DeterministicRotHM(games4e.Game):
+class RotHM(games4e.Game):
+    def create_empty_state(board):
+        return {'hands': [[random.randint(0, 7) for _ in range(3)] for _ in range(2)],
+                'to_move': 0,
+                'scores': [0, 0],
+                'board': {
+                    'cards': [None]*board.size,
+                    'owners': [None]*board.size}}
+
+
     def example_state():
         return {'hands': [[1, 2, 3], [3, 4, 5]],
                 'to_move': 0,
@@ -111,8 +161,9 @@ class DeterministicRotHM(games4e.Game):
 
     def __init__(self, board):
         self.board = board
-        self.size = board.size # for ease
-        self.initial = self.__class__.example_state() # TODO: TMP
+        # self.size = board.size # for ease
+        # self.initial = self.__class__.example_state() # TODO: TMP
+        self.initial = self.__class__.create_empty_state(board)
         pass
 
     def actions(self, state):
@@ -140,13 +191,13 @@ class DeterministicRotHM(games4e.Game):
         for v in self.board.adj[u]:
             neighbor_card = state['board']['cards'][v]
             if neighbor_card == card:
-                print("Phase pair")
+                # print("Phase pair")
                 scoring_events.append(('phase', card, v))
                 score_change += 1
                 new_state['board']['owners'][u] = player
                 new_state['board']['owners'][v] = player
             if neighbor_card == (card + 4) % 8:
-                print("Full moon pair")
+                # print("Full moon pair")
                 scoring_events.append(('full', card, v))
                 score_change += 2
                 new_state['board']['owners'][u] = player
@@ -158,43 +209,7 @@ class DeterministicRotHM(games4e.Game):
         # chains = self.check_chains(new_state, u)
         inc_chains = self.check_chains(new_state, u, direction='increase')
         dec_chains = self.check_chains(new_state, u, direction='decrease')
-        print(f"Chains found: {inc_chains}, {dec_chains}")
-        # TODO: deduplicate chains
-        # # bulletproof but icky method
-        # chains_deduped = {tuple(sorted(ch, key=new_state['board']['cards'].__getitem__)) for ch in chains if len(ch) >= 3}
-        # print(chains_deduped)
-        
-        # # DONE: remove reordering duplicates
-        # deduped_chains = []
-        # chain_membership_seen = set()
-        # for ch in chains:
-        #     # chain_membership = tuple(sorted())
-        #     chain_membership = sum(1 << v for v in ch) # little bitsets
-        #     if chain_membership in chain_membership_seen: continue
-            
-        #     chain_membership_seen.add(chain_membership)
-        #     deduped_chains.append(ch)
-
-        # chains,deduped_chains = deduped_chains,[]
-        # chain_encodings = [sum(1 << v for v in ch) for ch in chains]
-
-        # for i in range(len(chain_encodings)):
-        #     x = chain_encodings[i]
-        #     for j in range(len(chain_encodings)):
-        #         y = chain_encodings[j]
-        #         if x == j: continue
-        #         if x & ~j == 0: # x \subseteq j
-        #             break
-        #     else: # x \nsubseteq y \forall y \neq x \in `chains`
-        #         deduped_chains.append(chains[i])
-
-        # # TODO: remove prefix/suffix duplicates
-        # # TODO: remove any chains that are subsets of other chains
-        # # for ch1 in deduped_chains:
-        # #     enc1 = sum(1 << v for v in ch1)
-        # #     for ch2 in deduped_chains:
-        # #         enc2 = sum(1 << v for v in ch2)
-        # #         if enc2
+        # print(f"Chains found: {inc_chains}, {dec_chains}")
 
         inc_chains = self.__class__.deduplicate_chains(inc_chains)
         dec_chains = self.__class__.deduplicate_chains(dec_chains)
@@ -202,17 +217,17 @@ class DeterministicRotHM(games4e.Game):
         inc_encodings = [self.__class__.chain_to_bitset(ch) for ch in inc_chains]
         dec_encodings = [self.__class__.chain_to_bitset(ch) for ch in dec_chains]
 
-        # TODO: stitch ascending and descending chains
+        # stitch ascending and descending chains
         stitched_chains = []
         for inc,inc_enc in zip(inc_chains, inc_encodings):
             for dec,dec_enc in zip(dec_chains, dec_encodings):
                 if inc_enc & dec_enc != 1 << u: continue
                 stitched_chains.append(dec[::-1] + inc[1:])
         
-        print(stitched_chains)
+        # print(stitched_chains)
         for ch in stitched_chains:
             if len(ch) >= 3:
-                print(f"Lunar cycle of length {len(ch)}")
+                # print(f"Lunar cycle of length {len(ch)}")
                 score_change += len(ch)
                 for v in ch:
                     new_state['board']['owners'][v] = player
@@ -275,10 +290,8 @@ class DeterministicRotHM(games4e.Game):
 
 
     def utility(self, state, player):
-        if player == 0:
-            return state['scores'][0] - state['scores'][1]
-        else:
-            return state['scores'][1] - state['scores'][0]
+        util = state['scores'][0] - state['scores'][1] + state['board']['owners'].count(0) - state['board']['owners'].count(1) 
+        return util if player == 0 else -util
 
     # def terminal_test(self, state):
     #     return all(x is not None for x in state['board']['cards'])
@@ -301,16 +314,18 @@ def main():
     canvas = tk.Canvas(window_root, width=500, height=500, bg=bg_color)
     canvas.pack()
 
-    g = Graph.example_board() # holds board connectivity data
+    g = Graph.example_board(edge_length=7) # holds board connectivity data
     # g.canvas = canvas
     # g.draw_board(canvas)
     # input()
-    # g.draw_board(canvas, DeterministicRotHM.example_state())
+    # g.draw_board(canvas, RotHM.example_state())
     # g.display()
 
-    game = DeterministicRotHM(g)
+    game = RotHM(g)
     game.canvas = canvas
-    game.play_game(games4e.query_player, games4e.random_player)
+    # game.play_game(games4e.query_player, games4e.random_player)
+    # game.play_game(games4e.query_player, games4e.mcts_player)
+    game.play_game(games4e.mcts_player, games4e.mcts_player)
     # game.play_game(games4e.query_player, games4e.query_player)
 
 if __name__ == '__main__':
