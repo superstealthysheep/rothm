@@ -120,9 +120,19 @@ class Graph:
             for v in neigh:
                 x_u,y_u = self.pos[u]
                 x_v,y_v = self.pos[v]
+                val_u = state['board']['cards'][u]
+                val_v = state['board']['cards'][v]
+                phase = full = cycle = None
+                if val_u is not None and val_v is not None:
+                    phase = val_u == val_v
+                    full = (val_u + 4) % 8 == val_v
+                    cycle = abs((val_u - val_v) % 8) == 1
                 Graph.draw_edge(self.scale, canvas, 
                                          x_u, y_u, 
-                                         x_v, y_v)
+                                         x_v, y_v,
+                                         phase=phase, 
+                                         full=full,
+                                         cycle=cycle)
 
         for u in range(self.size):
             x,y = self.pos[u]
@@ -136,9 +146,9 @@ class Graph:
     #     assert self.canvas is not None
     #     self.draw_board(self.canvas)
 
-class RotHM(games4e.Game):
+class RotHM(games4e.StochasticGame):
     def create_empty_state(board):
-        return {'hands': [[random.randint(0, 7) for _ in range(3)] for _ in range(2)],
+        return {'hands': [[random.randint(0, 7) for _ in range(2)] for _ in range(2)],
                 'to_move': 0,
                 'scores': [0, 0],
                 'board': {
@@ -147,7 +157,7 @@ class RotHM(games4e.Game):
 
 
     def example_state():
-        return {'hands': [[1, 2, 3], [3, 4, 5]],
+        return {'hands': [[1, 2], [3, 4]],
                 'to_move': 0,
                 'scores': [0, 0], 
                 'board': {
@@ -166,6 +176,15 @@ class RotHM(games4e.Game):
         self.initial = self.__class__.create_empty_state(board)
         pass
 
+    def chances(self, state):
+        return range(8)
+
+    def outcome(self, state, chance):
+        new_state = copy.deepcopy(state)
+        player = state['to_move']
+        new_state['hands'][player].append(chance)
+        return new_state
+
     def actions(self, state):
         actions = []
         player = state['to_move']
@@ -181,7 +200,7 @@ class RotHM(games4e.Game):
         # assert is_valid_move(state, move)
         u,card = move
         player = state['to_move']
-        scoring_events = []
+        # scoring_events = []
         score_change = 0
 
         new_state = copy.deepcopy(state)
@@ -192,13 +211,13 @@ class RotHM(games4e.Game):
             neighbor_card = state['board']['cards'][v]
             if neighbor_card == card:
                 # print("Phase pair")
-                scoring_events.append(('phase', card, v))
+                # scoring_events.append(('phase', card, v))
                 score_change += 1
                 new_state['board']['owners'][u] = player
                 new_state['board']['owners'][v] = player
             if neighbor_card == (card + 4) % 8:
                 # print("Full moon pair")
-                scoring_events.append(('full', card, v))
+                # scoring_events.append(('full', card, v))
                 score_change += 2
                 new_state['board']['owners'][u] = player
                 new_state['board']['owners'][v] = player
@@ -233,7 +252,7 @@ class RotHM(games4e.Game):
                     new_state['board']['owners'][v] = player
 
         new_state['hands'][player].remove(card)
-        new_state['hands'][player].append(random.randint(0, 7))
+        # new_state['hands'][player].append(random.randint(0, 7)) # done in `outcome()`
         new_state['scores'][player] += score_change
         new_state['to_move'] = 1 - player
 
@@ -314,7 +333,7 @@ def main():
     canvas = tk.Canvas(window_root, width=500, height=500, bg=bg_color)
     canvas.pack()
 
-    g = Graph.example_board(edge_length=7) # holds board connectivity data
+    g = Graph.example_board(edge_length=5) # holds board connectivity data
     # g.canvas = canvas
     # g.draw_board(canvas)
     # input()
@@ -326,6 +345,7 @@ def main():
     # game.play_game(games4e.query_player, games4e.random_player)
     # game.play_game(games4e.query_player, games4e.mcts_player)
     game.play_game(games4e.mcts_player, games4e.mcts_player)
+    # game.play_game(games4e.query_player, games4e.query_player)
     # game.play_game(games4e.query_player, games4e.query_player)
 
 if __name__ == '__main__':
