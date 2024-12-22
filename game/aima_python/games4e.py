@@ -4,6 +4,7 @@ import time
 import copy
 import itertools
 import random
+from ast import literal_eval
 from collections import namedtuple
 
 import numpy as np
@@ -233,15 +234,21 @@ def query_player(game, state):
     """Make a move by querying standard input."""
     print("current state:")
     game.display(state)
-    print("available moves: {}".format(game.actions(state)))
+
+    # rothm-specific
+    print(f"Your hand: {state['hands'][state['to_move']]}")
+
+    actions = game.actions(state)
+    print("available moves: {}".format(actions))
     print("")
     move = None
-    if game.actions(state):
-        move_string = input('Your move? ')
-        try:
-            move = eval(move_string)
-        except NameError:
-            move = move_string
+    if actions:
+        while move not in actions:
+            move_string = input('Your move? ')
+            try:
+                move = literal_eval(move_string)
+            except NameError:
+                move = move_string
     else:
         print('no legal moves: passing turn to next player')
     return move
@@ -339,7 +346,7 @@ class StochasticGame(Game):
         """Play an n-person, move-alternating stochastic game."""
         state = self.initial
         while True:
-            # self.display(state)
+            self.display(state)
             # input()
             for player in players:
                 chance = random.choice(self.chances(state))
@@ -347,7 +354,7 @@ class StochasticGame(Game):
                 move = player(self, state)
                 state = self.result(state, move)
                 if self.terminal_test(state):
-                    # self.display(state)
+                    self.display(state)
                     return state
                     # return self.utility(state, self.to_move(self.initial))
 
