@@ -1,7 +1,7 @@
 Parameters: 
 3x3 board
 1000 games
-Runtime: 1 second
+Runtime: <1 second
 
 player 0: games4e.random_player
 player 1: games4e.random_player

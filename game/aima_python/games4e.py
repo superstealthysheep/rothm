@@ -339,15 +339,15 @@ class StochasticGame(Game):
         """Play an n-person, move-alternating stochastic game."""
         state = self.initial
         while True:
-            self.display(state)
-            input()
+            # self.display(state)
+            # input()
             for player in players:
                 chance = random.choice(self.chances(state))
                 state = self.outcome(state, chance)
                 move = player(self, state)
                 state = self.result(state, move)
                 if self.terminal_test(state):
-                    self.display(state)
+                    # self.display(state)
                     return state
                     # return self.utility(state, self.to_move(self.initial))
 

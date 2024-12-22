@@ -50,3 +50,10 @@ def expect_minmax(state, game, max_depth=np.inf):
 
 def expect_min_max_player(game, state):
     return expect_minmax(state, game, max_depth=3)
+
+def greedy(game, state):
+    player = game.to_move(state)
+    return max(game.actions(state), key=lambda a: game.utility(state, player))
+
+def greedy_player(game, state):
+    return greedy(game, state)
