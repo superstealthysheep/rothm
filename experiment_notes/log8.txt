@@ -1,0 +1,5 @@
+Parameters: 
+3x3 board
+1000 games
+player 0: 
+player 1: 

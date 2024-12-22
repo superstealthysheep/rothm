@@ -1,5 +1,6 @@
 """Games or Adversarial Search (Chapter 5)"""
 
+import time
 import copy
 import itertools
 import random
@@ -75,7 +76,8 @@ def expect_minmax(state, game):
         for chance in game.chances(res_state):
             res_state = game.outcome(res_state, chance)
             util = 0
-            if res_state.to_move == player:
+            # if res_state.to_move == player:
+            if res_state['to_move'] == player:
                 util = max_value(res_state)
             else:
                 util = min_value(res_state)
@@ -221,6 +223,7 @@ def monte_carlo_tree_search(state, game, N=1000):
 
     return root.children.get(max_state)
 
+# def ignorant_mcts(state, game, N=1000):
 
 # ______________________________________________________________________________
 # Players for Games
@@ -310,7 +313,8 @@ class Game:
                 state = self.result(state, move)
                 if self.terminal_test(state):
                     self.display(state)
-                    return self.utility(state, self.to_move(self.initial))
+                    return state
+                    # return self.utility(state, self.to_move(self.initial))
 
 
 class StochasticGame(Game):
@@ -335,6 +339,8 @@ class StochasticGame(Game):
         """Play an n-person, move-alternating stochastic game."""
         state = self.initial
         while True:
+            self.display(state)
+            input()
             for player in players:
                 chance = random.choice(self.chances(state))
                 state = self.outcome(state, chance)
@@ -342,7 +348,8 @@ class StochasticGame(Game):
                 state = self.result(state, move)
                 if self.terminal_test(state):
                     self.display(state)
-                    return self.utility(state, self.to_move(self.initial))
+                    return state
+                    # return self.utility(state, self.to_move(self.initial))
 
 
 class Fig52Game(Game):

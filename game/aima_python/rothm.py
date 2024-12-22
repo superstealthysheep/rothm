@@ -5,12 +5,16 @@
 import copy
 import random
 import tkinter as tk
+from functools import reduce
+from operator import or_
 # from aima_python import utils4e
 # print('ligma')
 # from aima_python import games4e
 # import aima_python.games4e as games4e
 import games4e
 from collections import defaultdict
+import homemade_agents
+from tqdm.auto import tqdm
 
 bg_color = 'white'
 white_color = 'lightblue'
@@ -164,6 +168,27 @@ class RotHM(games4e.StochasticGame):
                     'cards': [None, None, 1, 2, None, None, None, None, None], 
                     'owners': [None, None, 0, 1, None, None, None, None, None, None, None]}}
 
+    def example_state_2():
+        return {'hands': [[2, 7, 2], [3, 4]],
+        'to_move': 0,
+        'scores': [8, 1], 
+        'board': {
+            'cards': [None, 6, 5, 4, None, 6, 2, 3, None, None, None, 7, 5, None, None, None], 
+            'owners': [None, 0, 1, 1, None, 0, 0, 1, None, None, None, 0, None, None, None, None]}}
+
+    # Hopefully faster than `deepcopy`
+    # Given more time, would love to do some diff-based method that avoids the need to make copies, but this is very low effort and affords a great speedup.
+    @staticmethod
+    def copy_state(state):
+        res = {'hands': [x.copy() for x in state['hands']],
+               'to_move': state['to_move'],
+               'scores': state['scores'].copy(),
+               'board': {
+                    'cards': state['board']['cards'].copy(),
+                    'owners': state['board']['owners'].copy()
+               }}
+        return res
+
     def example_move():
         return (16, # position
                 1  # card
@@ -179,8 +204,12 @@ class RotHM(games4e.StochasticGame):
     def chances(self, state):
         return range(8)
 
+    def probability(self, chance):
+        return 1/8
+
     def outcome(self, state, chance):
-        new_state = copy.deepcopy(state)
+        # new_state = copy.deepcopy(state)
+        new_state = RotHM.copy_state(state)
         player = state['to_move']
         new_state['hands'][player].append(chance)
         return new_state
@@ -203,7 +232,7 @@ class RotHM(games4e.StochasticGame):
         # scoring_events = []
         score_change = 0
 
-        new_state = copy.deepcopy(state)
+        new_state = RotHM.copy_state(state)
         new_state['board']['cards'][u] = card
 
         # check for pairwise score increments
@@ -237,11 +266,16 @@ class RotHM(games4e.StochasticGame):
         dec_encodings = [self.__class__.chain_to_bitset(ch) for ch in dec_chains]
 
         # stitch ascending and descending chains
-        stitched_chains = []
-        for inc,inc_enc in zip(inc_chains, inc_encodings):
-            for dec,dec_enc in zip(dec_chains, dec_encodings):
-                if inc_enc & dec_enc != 1 << u: continue
-                stitched_chains.append(dec[::-1] + inc[1:])
+        def stitch_chains(inc_chains, dec_chains):
+            stitched_chains = []
+            for inc,inc_enc in zip(inc_chains, inc_encodings):
+                for dec,dec_enc in zip(dec_chains, dec_encodings):
+                    if inc_enc & dec_enc != 1 << u: continue
+                    stitched_chains.append(dec[::-1] + inc[1:])
+            return stitched_chains
+
+        # pulled this out to see profiling results
+        stitched_chains = stitch_chains(inc_chains, dec_chains)
         
         # print(stitched_chains)
         for ch in stitched_chains:
@@ -291,11 +325,17 @@ class RotHM(games4e.StochasticGame):
         chains = unique_chains
         chain_encodings = [cls.chain_to_bitset(ch) for ch in chains]
 
+        # TODO: think again: should this step be done only after the cartesian product?
+        # Think hard because this may cause a large slowdown
+        # remove subset duplicates
         deduped_chains = []
+        # dominated = set() # not necessary, but hopefully gives a small efficiency boost, especially in a game with long chains
         for i,x in enumerate(chain_encodings):
             for j,y in enumerate(chain_encodings):
                 if i == j: continue
+                # if j in dominated: continue
                 if x & ~y == 0: # x \subseteq y
+                    # dominated.add(x)
                     break
             else: # x \nsubseteq y \forall y \neq x \in `chains`
                 deduped_chains.append(chains[i])
@@ -305,6 +345,7 @@ class RotHM(games4e.StochasticGame):
     @classmethod
     def chain_to_bitset(cls, chain):
         # assert max(Counter(chain).values()) <= 1
+        # return reduce(or_, (1 << v for v in chain))
         return sum(1 << v for v in chain)
 
 
@@ -319,7 +360,7 @@ class RotHM(games4e.StochasticGame):
         return state['to_move']
 
     def display(self, state):
-        print(state)
+        # print(state)
         assert self.canvas is not None
         self.board.draw_board(self.canvas, state)
         pass
@@ -333,20 +374,44 @@ def main():
     canvas = tk.Canvas(window_root, width=500, height=500, bg=bg_color)
     canvas.pack()
 
-    g = Graph.example_board(edge_length=5) # holds board connectivity data
-    # g.canvas = canvas
-    # g.draw_board(canvas)
-    # input()
-    # g.draw_board(canvas, RotHM.example_state())
-    # g.display()
+    all_scores = []
+    # for game_num in tqdm(range(1000)):
+    for game_num in tqdm(range(1)):
+        # print(f"Game number {game_num}")
+        g = Graph.example_board(edge_length=4) # holds board connectivity data
+        game = RotHM(g)
+        game.canvas = canvas
+        canvas.delete('all')
 
-    game = RotHM(g)
-    game.canvas = canvas
-    # game.play_game(games4e.query_player, games4e.random_player)
-    # game.play_game(games4e.query_player, games4e.mcts_player)
-    game.play_game(games4e.mcts_player, games4e.mcts_player)
-    # game.play_game(games4e.query_player, games4e.query_player)
-    # game.play_game(games4e.query_player, games4e.query_player)
+        # game.play_game(games4e.query_player, games4e.random_player)
+        # game.play_game(games4e.query_player, games4e.mcts_player)
+        result = game.play_game(games4e.mcts_player, games4e.mcts_player)
+        # result = game.play_game(games4e.random_player, games4e.random_player)
+
+        # result = game.play_game(homemade_agents.expect_min_max_player, games4e.mcts_player)
+
+        # game.play_game(games4e.query_player, games4e.query_player)
+        # game.play_game(games4e.query_player, games4e.query_player)
+        scores = result['scores'].copy()
+        for i,_ in enumerate(scores):
+            scores[i] += result['board']['owners'].count(i)
+
+        # print(f"Game completed. Final scores (including territory): {scores}")
+        all_scores.append(scores)
+        
+        # print("Running totals:")
+        # # print(f"List of all game outcomes: {all_scores}")
+        # winners = [max(range(2), key=res.__getitem__) for res in all_scores]
+        # print(f"Player 0 wins: {winners.count(0)}")
+        # print(f"Player 1 wins: {winners.count(1)}")
+
+    print(f"DONE")
+    print(f"List of all game outcomes: {all_scores}")
+    winners = [max(range(2), key=res.__getitem__) for res in all_scores]
+    print(f"Player 0 wins: {winners.count(0)}")
+    print(f"Player 1 wins: {winners.count(1)}")
+
+
 
 if __name__ == '__main__':
     main()
